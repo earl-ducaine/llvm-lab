@@ -1,0 +1,43 @@
+(+ 1 2)
+
+(define (myadd x y)
+	(+ x y))
+
+(myadd 3 4)
+
+
+(defun myadd2 (x y)
+	(+ x y))
+
+(myadd 5 6)
+
+
+
+;; (define (apply fn args)
+;;   (list fn args))
+
+;; (define (funcall fn . args)
+;;   (apply fn args))
+
+;; (define (member exp set)
+;;   (if (null? set)
+;;       f
+;;       (or (equal? exp (car set))
+;; 	  (member-iter exp (cdr set)))))
+
+;; (define (variable-p exp)
+;;   (member exp '(x y z m n o p q r s t u v w)))
+
+;; (define (exp-p x)
+;;   (consp x))
+
+;; (define (exp-args x)
+;;   (rest x))
+
+;; (define (funcall fn . args)
+;;   (apply fn args))
+
+;; (defun my-defun () 'a)
+
+
+;; (write "this is a string")

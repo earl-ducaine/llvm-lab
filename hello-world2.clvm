@@ -1,0 +1,7 @@
+(define (scheme)
+  (newline)
+  (display "=> ")
+  (write ((compiler (read))))
+  (scheme))
+
+(scheme)

@@ -4,71 +4,50 @@
 
 ;;;; File compile1.lisp: Simplest version of Scheme compiler
 
+(in-package :clvm)
 
-(defun comp (x env)
-  "Compile the expression x into a list of instructions"
-  (cond
-    ((symbolp x) (gen-var x env))
-    ((atom x) (gen 'CONST x))
-    ((scheme-macro (first x)) (comp (scheme-macro-expand x) env))
-    ((case (first x)
-       (QUOTE  (gen 'CONST (second x)))
-       (BEGIN  (comp-begin (rest x) env))
-       (SET!   (seq (comp (third x) env) (gen-set (second x) env)))
-       (IF     (comp-if (second x) (third x) (fourth x) env))
-       (LAMBDA (gen 'FN (comp-lambda (second x) (rest (rest x)) env)))
-       ;; Procedure application:
-       ;; Compile args, then fn, then the call
-       (t      (seq (mappend #'(lambda (y) (comp y env)) (rest x))
-                    (comp (first x) env)
-                              (gen 'call (length (rest x)))))))))
+;; (defun comp-begin-old (exps env)
+;;   "Compile a sequence of expressions, popping all but the last."
+;;   (cond ((null exps) (gen 'CONST nil))
+;;         ((length=1 exps) (comp (first exps) env))
+;;         (t (seq (comp (first exps) env)
+;;                 (gen 'POP)
+;;                 (comp-begin (rest exps) env)))))
 
-;;; ==============================
-
-(defun comp-begin (exps env)
-  "Compile a sequence of expressions, popping all but the last."
-  (cond ((null exps) (gen 'CONST nil))
-        ((length=1 exps) (comp (first exps) env))
-        (t (seq (comp (first exps) env)
-                (gen 'POP)
-                (comp-begin (rest exps) env)))))
-
-;;; ==============================
-
-(defun comp-if (pred then else env)
-  "Compile a conditional expression."
-  (let ((L1 (gen-label))
-        (L2 (gen-label)))
-    (seq (comp pred env) (gen 'FJUMP L1)
-         (comp then env) (gen 'JUMP L2)
-         (list L1) (comp else env)
-         (list L2))))
+;; (defun comp-if (pred then else env)
+;;   "Compile a conditional expression."
+;;   (let ((L1 (gen-label))
+;;         (L2 (gen-label)))
+;;     (seq (comp pred env) (gen 'FJUMP L1)
+;;          (comp then env) (gen 'JUMP L2)
+;;          (list L1) (comp else env)
+;;          (list L2))))
 
 ;;; ==============================
 
 (defstruct (fn (:print-function print-fn))
   code (env nil) (name nil) (args nil))
 
-(defun comp-lambda (args body env)
-  "Compile a lambda form into a closure with compiled code."
-  (assert (and (listp args) (every #'symbolp args)) ()
-          "Lambda arglist must be a list of symbols, not ~a" args)
-  ;; For now, no &rest parameters.
-  ;; The next version will support Scheme's version of &rest
-  (make-fn
-    :env env :args args
-    :code (seq (gen 'ARGS (length args))
-               (comp-begin body (cons args env))
-               (gen 'RETURN))))
+;; (defun comp-lambda-old (args body env)
+;;   "Compile a lambda form into a closure with compiled code."
+;;   (assert (and (listp args) (every #'symbolp args)) ()
+;;           "Lambda arglist must be a list of symbols, not ~a" args)
+;;   ;; For now, no &rest parameters.
+;;   ;; The next version will support Scheme's version of &rest
+;;   (make-fn
+;;     :env env :args args
+;;     :code (seq (gen 'ARGS (length args))
+;;                (comp-begin body (cons args env))
+;;                (gen 'RETURN))))
 
 ;;; ==============================
 
 (defvar *label-num* 0)
 
-(defun compiler (x)
+(defun compiler (code-list)
   "Compile an expression as if it were in a parameterless lambda."
   (setf *label-num* 0)
-  (comp-lambda '() (list x) nil))
+  (comp-lambda '() (list code-list) nil))
 
 (defun comp-show (x)
   "Compile an expression and show the resulting code"
@@ -105,7 +84,12 @@
         (gen 'LSET (first p) (second p) ";" var)
         (gen 'GSET var))))
 
-;;; ==============================
+;; (def-scheme-macro defun (name &rest body)
+;;   (if (atom name)
+;;       `(name! (fn-set! ,name . ,body) ',name)
+;;       (scheme-macro-expand
+;;        `(defun ,(first name)
+;;             (lambda ,(rest name) . ,body)))))
 
 (def-scheme-macro define (name &rest body)
   (if (atom name)
@@ -121,11 +105,20 @@
   name)
 
 ;; This should also go in init-scheme-interp:
-(set-global-var! 'name! #'name!)
+
+(set-global-var 'name! #'name!)
 
 (defun print-fn (fn &optional (stream *standard-output*) depth)
   (declare (ignore depth))
-  (format stream "{~a}" (or (fn-name fn) '??)))
+  (format stream "|:name {~a}~% :fn-code ~a ~%:fn-env ~a ~%:fn-args ~a|"
+	  (or (fn-name fn) '<anonymous>)
+	  (fn-code fn)
+	  (fn-env fn)
+	  (fn-name fn)
+	  (fn-args fn)))
+
+;; (defstruct (fn (:print-function print-fn))
+;;   code  env  name  args)
 
 (defun show-fn (fn &optional (stream *standard-output*) (depth 0))
   "Print all the instructions in a function.

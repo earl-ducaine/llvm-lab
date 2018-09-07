@@ -4,7 +4,7 @@
 
 ;;; File interp2.lisp: Tail-recursive Scheme interpreter.
 
-(requires "interp1")
+(in-package :interpreter)
 
 (defun interp (x &optional env)
   "Evaluate the expression x in the environment env.
@@ -15,7 +15,7 @@
       (cond
         ((symbolp x) (get-var x env))
         ((atom x) x)
-        ((scheme-macro (first x)) 
+        ((scheme-macro (first x))
          (setf x (scheme-macro-expand x)) (go :INTERP))
         ((case (first x)
            (QUOTE  (second x))

@@ -4,9 +4,19 @@
 
 ;;;; File macsyma.lisp: The implementation of MACSYMA in Chapter 8
 
-(requires "patmatch")
+(in-package :macsyma)
 
-(defun variable-p (exp)
+(defun length=1 (x)
+  "Is x a list of length 1?"
+  (and (consp x) (null (cdr x))))
+
+(defun starts-with (list x)
+    "Is x a list whose first element is x?"
+    (and (consp list) (eql (first list) x)))
+
+(load "/home/rett/dev/llvm-lab/llvm-lab/patmatch.lisp")
+
+(defun my-variable-p (exp)
   "Variables are the symbols M through Z."
   ;; put x,y,z first to find them a little faster
   (member exp '(x y z m n o p q r s t u v w)))
@@ -84,7 +94,7 @@
 
 (defun simp (inf) (prefix->infix (simplify (infix->prefix inf))))
 
-(defun simplify (exp) 
+(defun simplify (exp)
   "Simplify an expression by first simplifying its components."
   (if (atom exp) exp
       (simplify-exp (mapcar #'simplify exp))))
@@ -203,11 +213,11 @@
   ;; First try some trivial cases
   (cond
     ((free-of exp x) `(* ,exp x))          ; Int c dx = c*x
-    ((starts-with exp '+)                  ; Int f + g  = 
+    ((starts-with exp '+)                  ; Int f + g  =
      `(+ ,(integrate (exp-lhs exp) x)      ;   Int f + Int g
          ,(integrate (exp-rhs exp) x)))
-    ((starts-with exp '-)              
-     (ecase (length (exp-args exp))        
+    ((starts-with exp '-)
+     (ecase (length (exp-args exp))
        (1 (integrate (exp-lhs exp) x))     ; Int - f = - Int f
        (2 `(- ,(integrate (exp-lhs exp) x) ; Int f - g  =
               ,(integrate (exp-rhs exp) x)))))  ; Int f - Int g
@@ -240,7 +250,7 @@
   (assert (starts-with factor '^))
   (let* ((u (exp-lhs factor))              ; factor = u^n
          (n (exp-rhs factor))
-         (k (divide-factors 
+         (k (divide-factors
               factors (factorize `(* ,factor ,(deriv u x))))))
     (cond ((free-of k x)
            ;; Int k*u^n*du/dx dx = k*Int u^n du
