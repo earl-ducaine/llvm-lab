@@ -1,5 +1,5 @@
 (asdf:defsystem :llvm-lab
-    :depends-on (:uiop)
+    :depends-on (uiop cl-fad)
     :components
     ((:file "packages")
      (:file "auxfns")

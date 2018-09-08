@@ -14,7 +14,13 @@
     "Is x a list whose first element is x?"
     (and (consp list) (eql (first list) x)))
 
-(load "/home/rett/dev/llvm-lab/llvm-lab/patmatch.lisp")
+(defparameter *project-root*
+  (asdf:system-source-directory :llvm-lab))
+
+
+(load (cl-fad:merge-pathnames-as-file
+       *project-root*
+       "patmatch.lisp"))
 
 (defun my-variable-p (exp)
   "Variables are the symbols M through Z."
